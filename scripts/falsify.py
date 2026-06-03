@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+# Contracted, token-thrifty CLI over the falsification ledger (falsification/CONTRACT.md) — the channel's
+# pull-based AWARENESS mechanism. The contract is pull-only (N2/N3: no push/flood); discovery is therefore
+# a cheap, informative pull: `list --unread` surfaces what's NEW to YOU (read-state is per-consumer-local,
+# never in the shared ledger), open-axis advertises where an independent attack still adds coverage, and a
+# staleness flag is the I10 dead-mechanism detector (an open FR no one has attacked). WRITES go through the
+# installed validator (validate_falsification) so records can't drift from the spec; `respond` auto-pins
+# target_claim_hash so a responder needn't hand-compute the FR's bytes.
+#
+#   falsify.py list [--domain D] [--unread] [--stale-days N]   # discover: open FRs + open-axis + STALE flag
+#   falsify.py show <claim_id>                                  # read one (marks it seen)
+#   falsify.py submit <fr.yaml>                                 # validate + open a new FR
+#   falsify.py respond <claim_id> <response.yaml>               # auto-pins target_claim_hash, validates, appends
+#
+# --ledger PATH (or $FALSIFY_LEDGER); defaults to commons/falsification or falsification.
+import argparse
+import datetime
+import hashlib
+import os
+import shutil
+import sys
+import tempfile
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import yaml
+from validate_falsification import validate_fr, validate_response
+
+AXES = ("model", "human", "corpus")
+
+
+def find_ledger(arg):
+    for p in (arg, os.environ.get("FALSIFY_LEDGER"), "commons/falsification", "falsification"):
+        if p and os.path.isdir(p):
+            return p
+    sys.exit("no ledger found (pass --ledger or set FALSIFY_LEDGER)")
+
+
+def seen_path():  # per-consumer-local read-state — in the consumer's cwd, gitignore it; NEVER in the ledger
+    return os.path.join(os.getcwd(), ".falsify-seen.json")
+
+
+def load_seen():
+    import json
+    try:
+        return set(json.load(open(seen_path())))
+    except (FileNotFoundError, ValueError):
+        return set()
+
+
+def mark_seen(cid):
+    import json
+    s = load_seen(); s.add(cid)
+    json.dump(sorted(s), open(seen_path(), "w"))
+
+
+def read(p):
+    return yaml.safe_load(open(p, encoding="utf-8")) or {}
+
+
+def responses(cdir):
+    rdir = os.path.join(cdir, "responses")
+    return [read(os.path.join(rdir, r)) for r in sorted(os.listdir(rdir))
+            if r.endswith((".yaml", ".yml"))] if os.path.isdir(rdir) else []
+
+
+def open_axes(cdir):
+    """Independence axes NOT yet attacked = AXES − ∪(responses' divergent_axes). Advertises where an
+    independent responder still adds coverage (the disjoint-tiling goal)."""
+    covered = set().union(*[set(r.get("divergent_axes") or []) for r in responses(cdir)]) if responses(cdir) else set()
+    return [a for a in AXES if a not in covered]
+
+
+def age_days(fr):
+    try:
+        d = datetime.date.fromisoformat(str(fr.get("submitted_at"))[:10])
+        return (datetime.date.today() - d).days
+    except Exception:
+        return None
+
+
+def cmd_list(ledger, a):
+    seen = load_seen()
+    for cid in sorted(d for d in os.listdir(ledger) if os.path.isdir(os.path.join(ledger, d))):
+        cdir = os.path.join(ledger, cid)
+        frp = os.path.join(cdir, "fr.yaml")
+        if not os.path.isfile(frp):
+            continue
+        fr = read(frp)
+        is_open = not os.path.isfile(os.path.join(cdir, "disposition.yaml"))
+        if a.domain and fr.get("domain") != a.domain:
+            continue
+        if a.unread and cid in seen:
+            continue
+        nresp = len(responses(cdir))
+        age = age_days(fr)
+        stale = is_open and nresp == 0 and age is not None and age >= a.stale_days
+        flags = ("•" if cid not in seen else " ") + ("‼STALE" if stale else "")
+        gaps = ("open-axis:" + ",".join(open_axes(cdir))) if is_open else "disposed"
+        print(f"{flags:7} {cid}  [{gaps}]  ({nresp} resp)  {fr.get('domain','')}")
+
+
+def cmd_show(ledger, a):
+    cdir = os.path.join(ledger, a.claim_id)
+    if not os.path.isdir(cdir):
+        sys.exit(f"no such claim: {a.claim_id}")
+    rdir = os.path.join(cdir, "responses")
+    rfiles = sorted(os.listdir(rdir)) if os.path.isdir(rdir) else []
+    for rel in ["fr.yaml"] + [f"responses/{r}" for r in rfiles] + ["disposition.yaml"]:
+        p = os.path.join(cdir, rel)
+        if os.path.isfile(p):
+            print(f"--- {rel} ---\n{open(p, encoding='utf-8').read().rstrip()}\n")
+    mark_seen(a.claim_id)
+
+
+def cmd_submit(ledger, a):
+    cid = read(a.file).get("claim_id") or sys.exit("fr.yaml needs claim_id")
+    if not validate_fr(a.file):
+        sys.exit("FR failed validation — not submitted")
+    cdir = os.path.join(ledger, cid)
+    os.makedirs(os.path.join(cdir, "responses"), exist_ok=True)
+    shutil.copy(a.file, os.path.join(cdir, "fr.yaml"))
+    print(f"submitted {cid} (commit + PR; auto-merges if valid + identity-bound)")
+
+
+def cmd_respond(ledger, a):
+    cdir = os.path.join(ledger, a.claim_id)
+    frp = os.path.join(cdir, "fr.yaml")
+    if not os.path.isfile(frp):
+        sys.exit(f"no open FR {a.claim_id}")
+    resp = read(a.file)
+    if not resp.get("target_claim_hash"):  # auto-pin the EXACT FR bytes (responder needn't hand-compute)
+        resp["target_claim_hash"] = "sha256:" + hashlib.sha256(open(frp, "rb").read()).hexdigest()
+        print(f"auto-pinned target_claim_hash = {resp['target_claim_hash']}")
+    rid = resp.get("responder_dyad_id") or sys.exit("need responder_dyad_id")
+    dest = os.path.join(cdir, "responses", f"{rid}.yaml")
+    if os.path.exists(dest):
+        sys.exit(f"{rid} already responded (append-only; verdict immutable)")
+    tmp = tempfile.mktemp(suffix=".yaml")
+    yaml.safe_dump(resp, open(tmp, "w"), sort_keys=False)
+    if not validate_response(tmp, read(frp).get("submitter_dyad_id")):
+        os.remove(tmp); sys.exit("response failed validation — not appended")
+    shutil.move(tmp, dest)
+    print(f"appended {rid} → {dest} (commit + PR; auto-merges if valid + identity-bound)")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ledger")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("list"); p.add_argument("--domain"); p.add_argument("--unread", action="store_true")
+    p.add_argument("--stale-days", type=int, default=14)
+    sub.add_parser("show").add_argument("claim_id")
+    sub.add_parser("submit").add_argument("file")
+    pr = sub.add_parser("respond"); pr.add_argument("claim_id"); pr.add_argument("file")
+    a = ap.parse_args()
+    ledger = find_ledger(a.ledger)
+    {"list": cmd_list, "show": cmd_show, "submit": cmd_submit, "respond": cmd_respond}[a.cmd](ledger, a)
+
+
+if __name__ == "__main__":
+    main()

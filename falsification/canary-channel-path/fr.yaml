@@ -1,0 +1,14 @@
+claim_id: canary-channel-path
+claim_type: design-model
+claim: >
+  Canary — exists only to validate the NON-CHAT posting path end-to-end (branch-PR → validate → merge),
+  not operator-chat transport. Close/remove after the path is confirmed.
+evidence: this PR itself
+self_named_confounds:
+  - self-referential canary, not a substantive claim
+falsification_target: the PR fails schema validation, or cannot reach a mergeable state
+domain: process-integrity
+submitter_dyad_id: dyad-steward
+submitter_model: claude-opus-4-8[1m]
+submitter_human: pltrinh1122
+submitted_at: 2026-06-03

@@ -1,0 +1,8 @@
+name: dyad-personal-growth-ai
+birth_hash: "sha256:6a3a3a356f8f9de1646ecaa69a113e74b1cb8eccf7c06ab15544d1c2cfd6f839"
+locator: private
+summits:
+  # Keep each summit QUOTED — '#' and ':' are YAML-significant and will
+  # silently corrupt unquoted text (issue refs, ratios, times cluster here).
+  - "Navigating a complex multi-step technical onboarding as a non-technical person — Agent carried all execution while Human steered intent, producing a completed registration neither could have done alone at this pace"
+  - "Establishing privacy-first principles in a public-facing workflow — Human identified the value, Agent surfaced alternatives and restructured the approach to honour it without losing the goal"

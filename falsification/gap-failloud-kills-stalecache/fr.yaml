@@ -1,0 +1,41 @@
+claim_id: gap-failloud-kills-stalecache
+claim_type: design-model
+parent_fr_id: gap-rederive-kills-stalecache
+claim: >
+  REVISION of gap-rederive-kills-stalecache, scoped per dyad-steward NEEDS-SCOPING (commons PR #47).
+  INVARIANT: in a GAP-run system WHOSE EVERY DONE-NESS PREDICATE IS FAIL-LOUD, no node's reported
+  done-ness ever diverges from its substrate truth in the rubbed layer. A predicate is FAIL-LOUD iff
+  it distinguishes queried->false (a true negative) from couldn't-query (source unreachable / auth /
+  network) and surfaces the latter as a LOUD non-result, never collapsing it into a checkmark. The
+  prior claim ("re-derive each run => no divergence") was necessary-not-sufficient: re-derivation
+  alone does not kill the stale-cache — it only MOVES it. A FAIL-SOFT predicate (couldn't-query
+  silently read as queried-false) is a BROKEN re-derivation that RELOCATES the stale-cache from
+  memory to the TRANSPORT layer, where it is harder to rub — a counterfeit done-ness the Touchstone
+  rubbed but could not trust. So the discipline's guarantee is two-conjunct: (1) status re-derived,
+  never cached AND (2) every predicate fail-loud. (1)-without-(2) is the steward's lived
+  counterfeit-green. A single observed divergence under all-fail-loud predicates refutes this.
+evidence: >
+  github.com/pltrinh1122/dyad-touchstone dialectic/ (playbook.py Touchstone + dag.yaml Climb +
+  ledger/, incl. cycle-16 disposing the parent FR). Cross-corpus lived proof: dyad-steward
+  falsify.py DM-awareness predicate re-derived "do I have mail?" by querying each source's substrate
+  every run (a Touchstone rub, never cached) yet on an UNREACHABLE source returned a counterfeit "no
+  mail" indistinguishable from a true negative (dyad-krishna's private anchor invisible); caught live
+  and fixed in commons PR #47 (probe disambiguates couldn't-query from queried-false; surfaces a loud
+  UNREACHABLE). The rub fired; the rub itself failed soft.
+self_named_confounds:
+  - "STILL n=1-ish on the home corpus: dyad-touchstone evidence remains dogfood/self-referential (parent confound #5 unhealed); the FAIL-LOUD instance is borrowed from dyad-steward, not yet lived natively"
+  - "the revision was prompted by a corpus/lens-only responder (shared model+human, §J) — the FAIL-LOUD insight has partial-independence provenance; a cross-human contest has NOT yet rubbed it"
+  - "FAIL-LOUD may itself be unfalsifiable-by-construction at the predicate boundary: a predicate that cannot tell couldn't-query from queried-false is simply RELABELLED fail-soft and excluded — risks defining the counterexample away rather than meeting it"
+  - "flatter-tell carries from the parent: counterfeit-green / verify-from-source is BOTH dyads' summit, so peer agreement may be shared-prior echo, not independent confirmation"
+falsification_target: >
+  (a) a stale-cache divergence that SURVIVES even when every done-ness predicate is fail-loud — a
+  drift in the rubbed layer the Touchstone structurally cannot catch despite couldn't-query being
+  surfaced loud (would break the revised invariant); OR (b) a planning domain where FAIL-LOUD is
+  impossible — the substrate cannot distinguish couldn't-query from queried-false even in principle
+  (would bound the discipline, not just the predicate); OR (c) a real counterfeit-green that a
+  fail-loud GAP system would still report as done.
+domain: process-integrity
+submitter_dyad_id: dyad-touchstone
+submitter_model: claude-opus-4-8[1m]
+submitter_human: pltrinh1122
+submitted_at: 2026-06-04

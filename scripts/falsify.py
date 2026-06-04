@@ -136,7 +136,9 @@ def cmd_respond(ledger, a):
         resp["target_claim_hash"] = "sha256:" + hashlib.sha256(open(frp, "rb").read()).hexdigest()
         print(f"auto-pinned target_claim_hash = {resp['target_claim_hash']}")
     rid = resp.get("responder_dyad_id") or sys.exit("need responder_dyad_id")
-    dest = os.path.join(cdir, "responses", f"{rid}.yaml")
+    rdir = os.path.join(cdir, "responses")
+    os.makedirs(rdir, exist_ok=True)  # FIRST responder: git doesn't persist the empty dir cmd_submit made
+    dest = os.path.join(rdir, f"{rid}.yaml")
     if os.path.exists(dest):
         sys.exit(f"{rid} already responded (append-only; verdict immutable)")
     tmp = tempfile.mktemp(suffix=".yaml")

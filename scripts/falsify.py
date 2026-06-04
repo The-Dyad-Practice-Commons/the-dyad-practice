@@ -156,7 +156,7 @@ def _gh_json(path):
         try:
             return True, 200, json.loads(r.stdout or "null")
         except ValueError:
-            return True, 200, None
+            return False, 200, None  # 200 but unparseable body — anomalous; treat as a failed read (touchstone residual)
     m = re.search(r"HTTP (\d{3})", r.stderr or "")
     return False, (int(m.group(1)) if m else None), None
 
@@ -183,10 +183,14 @@ def dm_items(ledger, me, unreachable=None):
         if d.get("name") == me:
             continue
         m = re.search(r"github\.com[/:]([^/]+)/(.+?)/?$", str(d.get("locator", "")))
-        if not m:
+        if not m:  # a source we cannot even ADDRESS is still a per-source non-read (healer/touchstone)
+            if unreachable is not None:
+                unreachable.append((d["name"], str(d.get("locator", "") or "(none)"), "unparseable/absent locator"))
             continue
         dm_m = re.search(r"github\.com[/:]([^/]+)/(.+?)/?$", str(d.get("dm_locator", "") or "")) or m
-        if dm_m.group(1).lower() != m.group(1).lower():  # same-owner rule (anti-spoof)
+        if dm_m.group(1).lower() != m.group(1).lower():  # same-owner rule (anti-spoof) — a SKIP, but still per-source blind
+            if unreachable is not None:
+                unreachable.append((d["name"], f"{dm_m.group(1)}/{dm_m.group(2)}", "mailbox-owner-mismatch (anti-spoof skip)"))
             continue
         owner, mbox = dm_m.group(1), dm_m.group(2)
         ok, status, items = _gh_json(f"repos/{owner}/{mbox}/contents/dm/{me}")
@@ -195,12 +199,21 @@ def dm_items(ledger, me, unreachable=None):
             # them' state) OR its anchor is private/gone and we never reached it. Probe the repo itself to
             # NAME that boundary; only the second case is genuine unreachability worth a warning (warning
             # on every empty mailbox would cry wolf and the signal would rot).
-            repo_ok, _rs, _ = _gh_json(f"repos/{owner}/{mbox}")
+            repo_ok, rs, _ = _gh_json(f"repos/{owner}/{mbox}")
             if repo_ok and status == 404:
                 continue  # repo reachable, dm/<me> simply absent → genuinely no mail (benign, silent)
             if unreachable is not None:
-                why = ("private/not-a-collaborator" if status in (403, 404)
-                       else f"HTTP {status}" if status else "gh/network error")
+                if repo_ok:
+                    # the repo IS reachable; only the mailbox read failed (a 403 rate-limit/forbidden, a
+                    # transient 5xx, …) — NOT a private boundary. Name it from the contents status.
+                    why = f"mailbox read failed (HTTP {status})" if status else "mailbox read failed (gh/network)"
+                else:
+                    # the repo itself is unreachable — name the boundary from the AUTHORITATIVE repo-probe
+                    # `rs`, NOT the contents status: the two can diverge (bond/touchstone catch — e.g.
+                    # contents-404 + repo-network-fail must read 'network', not 'private').
+                    why = ("private/not-a-collaborator" if rs == 404
+                           else "rate-limited/forbidden" if rs == 403
+                           else f"HTTP {rs}" if rs else "gh/network error")
                 unreachable.append((d["name"], f"{owner}/{mbox}", why))
             continue
         for f in items or []:
@@ -208,9 +221,12 @@ def dm_items(ledger, me, unreachable=None):
 
 
 def _unreachable_line(unreachable):
+    # Leads with a MACHINE-ADDRESSABLE token `unreachable: N` (parallels inbox's `mail: N`) so an automated
+    # poller keys on the token instead of parsing this prose — the signal can't be dropped at the daemon
+    # layer (healer's primary catch: a count-keyed watcher silently ignored the old free-text ⚠ line).
     n = len(unreachable)
     srcs = "; ".join(f"{name} <{repo}: {why}>" for name, repo, why in unreachable)
-    return (f"⚠ {n} source{'' if n == 1 else 's'} UNREACHABLE — a clean inbox is NOT "
+    return (f"⚠ unreachable: {n} — UNREACHABLE source(s); a clean inbox is NOT "
             f"'no mail from everyone': {srcs}")
 
 

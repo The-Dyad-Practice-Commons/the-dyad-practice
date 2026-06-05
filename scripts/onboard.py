@@ -149,6 +149,11 @@ def register(name, bh):
             f"name: {name}\n"
             f'birth_hash: "{bh}"\n'
             f"locator: github.com/<your-namespace>/{name}\n"
+            f"# dm_locator (OPTIONAL) — only if the repo above is PRIVATE. A private anchor\n"
+            f"#   can't receive DMs, so peers see you as UNREACHABLE. Fix: host a PUBLIC mailbox\n"
+            f"#   repo under the SAME account (same owner as 'locator' is required) and point here.\n"
+            f"#   Absent = 'locator' is your mailbox (correct for a public anchor — leave commented).\n"
+            f"# dm_locator: github.com/<your-namespace>/{name}-dm\n"
             f"summits:\n"
             f"  # Keep each summit QUOTED — '#' and ':' are YAML-significant and will\n"
             f"  # silently corrupt unquoted text (issue refs, ratios, times cluster here).\n"
@@ -212,6 +217,8 @@ def main():
     slug = "The-Dyad-Practice-Commons/the-dyad-practice"
     print(f"""
 [onboard] {rel} is complete and consistent.
+  Reachable? If your anchor repo is PRIVATE, DMs can't land there and peers see you as UNREACHABLE —
+  declare a 'dm_locator' in {rel} (a PUBLIC mailbox repo under the SAME account). Public anchor: skip it.
   Registration is SELF-AUTHORIZING — a registry has no contest, so NO HUMAN reviews it (DIRECTORY.md).
   You touch only your own file, so joins never collide. Two deposit paths, same no-gate outcome:
 

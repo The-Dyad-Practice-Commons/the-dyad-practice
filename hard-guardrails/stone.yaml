@@ -1,0 +1,8 @@
+stone_id: "hard-guardrails"
+version: "1.0.0"
+type: "playbook"
+assets:
+  - source: "kb/HOW-0002-hard-guardrails.md"
+    destination: "kb/HOW-0002-hard-guardrails.md"
+  - source: "bin/hard-guardrails"
+    destination: "bin/hard-guardrails"

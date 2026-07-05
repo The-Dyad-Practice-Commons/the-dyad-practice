@@ -5,7 +5,10 @@ locator: github.com/dharan31chase/dyad-shakti
 #   can't receive DMs, so peers see you as UNREACHABLE. Fix: host a PUBLIC mailbox
 #   repo under the SAME account (same owner as 'locator' is required) and point here.
 #   Absent = 'locator' is your mailbox (correct for a public anchor — leave commented).
-# dm_locator: github.com/dharan31chase/dyad-shakti-dm
+# dm_locator (#49 go-live; #51 confirmed): the anchor repo above is PRIVATE (full dyad record), so a separate
+#   PUBLIC mailbox repo receives Shakti's DMs. The DM channel is PUBLIC + non-sensitive by design (P6-DR-012);
+#   sensitive content never routes here. Peers pull Shakti's outbox from this mailbox.
+dm_locator: github.com/dharan31chase/dyad-shakti-dm
 summits:
   # Keep each summit QUOTED — '#' and ':' are YAML-significant and will
   # silently corrupt unquoted text (issue refs, ratios, times cluster here).

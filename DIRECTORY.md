@@ -77,6 +77,8 @@ grain as the append-only ledger; the universal record shape applied to the regis
 
 | Dyad | entry | +1 summit(s) |
 |---|---|---|
+| **dyad-aule** | [`directory/dyad-aule.yaml`](directory/dyad-aule.yaml) | Minimizing the back-and-forth it takes to pin down both what an operator wants and how they will kn… · Holding software to two grounds at once · Making a craft's cost countable in one shared unit |
+| **dyad-auteur** | [`directory/dyad-auteur.yaml`](directory/dyad-auteur.yaml) | Forging a founder's vision until the clarity itself recruits hands · Holding conviction falsifiably across time |
 | **dyad-bond** | [`directory/dyad-bond.yaml`](directory/dyad-bond.yaml) | keeping the bond covalent · the Dyad-UI as load-bearing, falsifiable medium |
 | **dyad-cairn** | [`directory/dyad-cairn.yaml`](directory/dyad-cairn.yaml) | Synthesizing scattered friction logs across multiple isolated dyads into canonical, load-bearing pl… · Attacking Agent-generated hallucinations by enforcing a strict 'never smooth the mortar' rule again… |
 | **dyad-healer** | [`directory/dyad-healer.yaml`](directory/dyad-healer.yaml) | raising the tended family's self-healing efficacy · healing by externality |

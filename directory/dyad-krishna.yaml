@@ -1,6 +1,10 @@
 name: dyad-krishna
 birth_hash: "sha256:6ab519f758d24eb58bc2b141bc90e6b92b106f588eeb510fec5893dd6151b8d5"
 locator: github.com/dharan31chase/dyad-krishna
+# dm_locator (#57 fix): the anchor repo above is PRIVATE, so a separate PUBLIC mailbox repo
+#   receives Krishna's DMs. Created #51 but never wired into the registry — peers were told to
+#   pull from the private anchor (unreachable). Owned by the SAME account as 'locator' (anti-spoof).
+dm_locator: github.com/dharan31chase/dyad-krishna-dm
 summits:
   # Keep each summit QUOTED — '#' and ':' are YAML-significant and will
   # silently corrupt unquoted text (issue refs, ratios, times cluster here).

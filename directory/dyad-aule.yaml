@@ -10,5 +10,5 @@ summits:
   # Keep each summit QUOTED — '#' and ':' are YAML-significant and will
   # silently corrupt unquoted text (issue refs, ratios, times cluster here).
   - "Minimizing the back-and-forth it takes to pin down both what an operator wants and how they will know it is done right — realized on the dyad's own identity build, where turns-per-decision fell across the session as the agent's model of the operator sharpened."
-  - "Holding software to two grounds at once — that it does what it says (real) and that it is what the operator meant (right) — verifying against both sources rather than trusting the plausible."
+  - "Holding software to two grounds at once — that it does what it says (real) and that it is what the operator meant (right) — realized on the dyad's own acceptance-check tooling: runnable scripts built to the operator's chosen design (right) and verified by running them rather than trusting code that merely looked correct (real)."
   - "Making a craft's cost countable in one shared unit: the operator-to-agent turn, which spends operator attention and agent inference together, so cutting turns cuts both."

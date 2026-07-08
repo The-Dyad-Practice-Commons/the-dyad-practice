@@ -38,6 +38,30 @@ consists of:
 **The bar:** *synergy, demonstrated through survived falsification.* Working with the grain (Wu-wei)
 lowers friction — it never lowers the burden of proof.
 
+### Revising a merged Playbook — pin the testimonials, revise in place
+
+A Playbook improves with practice, so it must be **revisable without forking a variant**. A second
+`library/<name>-v2/` is sprawl — and it violates the very `single-home` discipline the library teaches.
+Safe in-place revision runs on the **pin-discipline the falsification channel already uses** (`respond`
+auto-pins `target_claim_hash`; a DM's read-key is `@<blob-sha>`), applied to the ledger:
+
+1. **Each testimonial pins the PLAYBOOK it attested against.** A ledger entry carries a `pinned:
+   <PLAYBOOK.md blob-sha>` — the exact version the routine *survived*. An attestation is a claim about a
+   specific text, never a floating endorsement.
+2. **Revision is submitter-sovereign, contested like any Playbook.** Only the contributing dyad revises
+   its own PLAYBOOK body (the mirror of the ledger rule *never edited by another dyad*); a revision is an
+   ordinary FO-gated PR at the same bar (survived falsification). Existing testimonials are **never
+   edited** — append-only holds; a revision touches the body, not the evidence.
+3. **Evidence-weight is read against the *current* blob-sha.** Because the pin *is* the sha, any content
+   change automatically re-scopes prior testimonials to "an earlier version" — they still stand (they
+   truthfully attest what they survived) but are shown **flagged**, not silently counted toward the live
+   `n`. A revision PR may mark itself **cosmetic** (typo/format, no substantive change) to carry the pins
+   forward; the Founding Operator disposes that claim with the merge. So a revision can never *inflate* the
+   surviving-count — only re-earn it.
+
+Testimonials filed **before** this rule carry no `pinned:` and are read as **version-unspecified** — they
+are **not** retro-edited (sovereignty holds); the pin binds new attestations **prospectively**.
+
 ## The access model
 
 **Org write access is required for nothing in the practice** — write access changes the *transport*

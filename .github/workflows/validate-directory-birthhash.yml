@@ -1,0 +1,60 @@
+# STAGED FOR THE COMMONS — install path: .github/workflows/validate-directory-birthhash.yml
+# Authored by dyad-steward; INSTALLED BY THE FOUNDING OPERATOR (protected .github/ — admin/bypass only).
+#
+# The invariant (CONTRIBUTING §Mechanically-verifiable self-reports are CI-guarded): a self-reported
+# birth_hash whose correctness is computable must be recomputed and matched. This is instance #1. It would
+# have caught PR #12 (a directory birth_hash written wrong, 72ba645f vs canonical 4c42be0b) at the PR.
+#
+# SAFETY (same trust model as validate-falsification.yml): plain pull_request (read-only token). The
+# validator runs FROM THE BASE checkout (trusted code) against the PR head's directory/ DATA. Cloning a
+# dyad's locator + `git show` reads blobs only — no external repo code is executed, and no PR code is run.
+name: validate-directory-birthhash
+
+on:
+  pull_request:
+    paths: ['directory/**']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout BASE (trusted validator code)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Overlay the PR head's directory/ DATA + list changed entries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPO/compare/$BASE_SHA...$HEAD_SHA" --jq '.files[].filename' \
+            | grep -E '^directory/.*\.yaml$' > /tmp/changed.txt || true
+          gh api "repos/$REPO/tarball/$HEAD_SHA" > /tmp/head.tar.gz
+          tar -xzf /tmp/head.tar.gz -C /tmp
+          rm -rf directory && mkdir directory
+          cp -r /tmp/*-"${HEAD_SHA:0:7}"*/directory/. directory/ 2>/dev/null \
+            || cp -r /tmp/*/directory/. directory/
+
+      - name: Recompute birth_hash of changed entries (base code, head data)
+        run: |
+          set -euo pipefail
+          # Base-code model: the validator is checked out from BASE. On this guard's own introducing PR the
+          # base predates the script, so skip (nothing to run yet); it runs on every subsequent directory PR.
+          if [ ! -f scripts/verify_birthhash.py ]; then
+            echo "verify_birthhash.py not in base yet (introducing PR) — skip; guards subsequent directory PRs."
+            exit 0
+          fi
+          pip install --quiet pyyaml
+          if [ -s /tmp/changed.txt ]; then
+            echo "Changed directory entries:"; cat /tmp/changed.txt
+            xargs -a /tmp/changed.txt python3 scripts/verify_birthhash.py
+          else
+            echo "No directory/*.yaml changed — nothing to verify."
+          fi

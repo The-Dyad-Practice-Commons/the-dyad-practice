@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-# CI guard — the first instance of the Commons invariant "a mechanically-verifiable self-report carries a
-# CI guard" (CONTRIBUTING §Mechanically-verifiable self-reports are CI-guarded). Recomputes each directory
-# birth_hash from its birth anchor and fails on mismatch. Would have caught PR #12 (the 72ba645f regression).
+# CI guard — instance #1 of the invariant "mechanically-verifiable self-reports are CI-guarded"
+# (CONTRIBUTING §Mechanically-verifiable self-reports are CI-guarded). Audits each directory birth_hash by
+# RE-RUNNING onboard.py's OWN algorithm (the definitive registration engine — birth_anchor + birth_hash)
+# against a clone of the entry's locator, then failing on mismatch. Leveraging the same engine that MINTS the
+# hash is the point: the audit and the registration can never diverge on the derivation (raw-vs-strip, anchor
+# choice, date format). Would have caught PR #12 — and it flags PR #82's own wrong 4c42be0b.
 #
-# Derivation is single-homed: reuses auto_share.birth_digest (RAW anchor bytes ‖ %cI). For each
-# directory/<dyad>.yaml: clone its `locator` (public only, treeless), find the earliest-committed
-# CLAUDE.md/GEMINI.md, recompute, compare to the declared birth_hash.
+# For each directory/<dyad>.yaml: clone its `locator` (public only), run onboard.birth_anchor + birth_hash in
+# the clone, compare to the declared birth_hash.
 #   match -> PASS ; mismatch -> FAIL (exit 1) ; private/unreachable/no-anchor -> SKIP (flagged, never trusted).
 #
-# Trust model (mirrors validate-falsification.yml): run this BASE-checked-out code against the PR's head
-# DATA. Cloning + `git show` reads blobs only — no cloned repo code executes.
+# Trust model (mirrors validate-falsification.yml): run this BASE-checked-out code against the PR's head DATA.
+# Cloning + onboard's `git show` read blobs only — no cloned-repo or PR code executes.
 import glob
 import os
 import re
@@ -20,9 +22,7 @@ import tempfile
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import yaml
-from auto_share import birth_digest
-
-ANCHORS = ("CLAUDE.md", "GEMINI.md")
+import onboard  # the definitive registration engine — single home of the birth_hash algorithm
 
 
 def locator_url(loc):
@@ -31,21 +31,22 @@ def locator_url(loc):
 
 
 def recompute(url):
-    """(birth_hash, anchor_file) on success, else (None, reason). Treeless clone: full history, blobs lazy."""
+    """Clone the locator and run onboard.py's OWN birth_anchor + birth_hash in it. (hash, anchor) or (None, reason)."""
     with tempfile.TemporaryDirectory() as d:
-        if subprocess.run(["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout", url, d],
-                          capture_output=True).returncode != 0:
+        if subprocess.run(["git", "clone", "--quiet", url, d], capture_output=True).returncode != 0:
             return None, "unreachable/private"
-        for anchor in ANCHORS:
-            c = subprocess.run(["git", "-C", d, "log", "--diff-filter=A", "--format=%H", "-1", "--", anchor],
-                               capture_output=True)
-            commit = c.stdout.decode().strip()
-            if c.returncode == 0 and commit:
-                content = subprocess.run(["git", "-C", d, "show", f"{commit}:{anchor}"], capture_output=True).stdout
-                date = subprocess.run(["git", "-C", d, "show", "-s", "--format=%cI", commit],
-                                      capture_output=True).stdout.decode().strip()
-                return birth_digest(content, date), anchor
-        return None, "no CLAUDE.md/GEMINI.md anchor"
+        cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            anchor = onboard.birth_anchor()  # (shim, commit) or None — uses CWD, hence the chdir
+            if not anchor:
+                return None, "no CLAUDE.md/GEMINI.md anchor"
+            shim, commit = anchor
+            return onboard.birth_hash(shim, commit), shim
+        except SystemExit:
+            return None, "onboard derivation error"
+        finally:
+            os.chdir(cwd)
 
 
 def check_file(path):
@@ -61,9 +62,9 @@ def check_file(path):
         print(f"SKIP {name}: {info} (unverifiable — flagged, not trusted)")
         return None
     if got == declared:
-        print(f"PASS {name}: birth_hash reproduces from {info}")
+        print(f"PASS {name}: birth_hash reproduces via onboard.py ({info})")
         return True
-    print(f"FAIL {name}: declared {declared} != recomputed {got} (anchor {info})")
+    print(f"FAIL {name}: declared {declared} != onboard.py recompute {got} (anchor {info})")
     return False
 
 

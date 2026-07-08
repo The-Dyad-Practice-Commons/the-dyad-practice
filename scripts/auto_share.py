@@ -2,7 +2,9 @@
 import os
 import sys
 import subprocess
-import hashlib
+
+import onboard  # the definitive registration engine — the single home of the birth_hash algorithm
+
 
 def run_cmd(cmd):
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -11,25 +13,16 @@ def run_cmd(cmd):
         sys.exit(1)
     return result.stdout.strip()
 
-def birth_digest(anchor_bytes, date_str):
-    # The IDENTITY CAVEAT hashes `git show <first-commit>:<anchor>` VERBATIM ‖ %cI. Hash the RAW anchor
-    # bytes — stripping (e.g. dropping the trailing newline `git show` emits) mints a DIFFERENT, WRONG
-    # hash: the 72ba645f regression that mis-registered dyad-steward (canonical was 4c42be0b). The old code
-    # took content through run_cmd(), whose .strip() silently dropped that newline. Bytes in, no normalization.
-    return "sha256:" + hashlib.sha256(anchor_bytes + date_str.encode("utf-8")).hexdigest()
-
 
 def compute_birth_hash():
-    # Run from the dyad root; the birth anchor is the earliest-committed CLAUDE.md/GEMINI.md.
-    anchor_file = next((f for f in ("CLAUDE.md", "GEMINI.md") if os.path.exists(f)), None)
-    if not anchor_file:
+    # Reuse onboard.py's OWN derivation — never a parallel copy. onboard is the definitive engine; a second
+    # implementation is exactly how the 4c42be0b/72ba645f (raw-vs-strip) divergence happened. Run from the
+    # dyad root; onboard.birth_anchor picks the earliest-committed CLAUDE.md/GEMINI.md in history.
+    anchor = onboard.birth_anchor()
+    if not anchor:
         print("Error: Could not find CLAUDE.md or GEMINI.md in the current directory.")
         sys.exit(1)
-    first_commit = run_cmd(f"git log --diff-filter=A --format=%H -1 -- {anchor_file}")
-    anchor_bytes = subprocess.run(["git", "show", f"{first_commit}:{anchor_file}"],
-                                  capture_output=True).stdout  # RAW bytes — must NOT strip (see birth_digest)
-    date_str = run_cmd(f"git show -s --format=%cI {first_commit}")
-    return birth_digest(anchor_bytes, date_str)
+    return onboard.birth_hash(*anchor)
 
 def main():
     if len(sys.argv) < 2:

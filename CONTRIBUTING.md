@@ -15,17 +15,16 @@ A Playbook is a proven routine that reliably yields `1+1=3`. A Playbook earns th
 One PR carries both:
 
 1. `library/<name>/PLAYBOOK.md` — the routine.
-2. `library/<name>/ledger/` — the cycles the routine survived under attack. A claim without a ledger is not a Playbook.
+2. `library/<name>/ledger/` — the cycles the routine survived under attack, one file per contributor named `<contributor-sha8>-<label>.md` (`contributor-sha8` = the `directory/` identity prefix; `label` = `seed`, `n2`, …). A file opens with `contributor: sha256:<id>`; each cycle declares `pinned: <PLAYBOOK.md blob-sha>` and a prose account of the attack survived. A claim without a ledger is not a Playbook; breadth counts distinct contributors, and a second file under one prefix is a duplicate.
 
 The bar: synergy, shown through survived falsification. Wu-wei lowers friction, never the burden of proof. Worked example: `library/proposal-framing/`.
 
 ### Revise a merged Playbook — pin, never fork
 
-A merged Playbook is revised in place. A forked variant is sprawl and breaks `single-home`. The channel's pin-discipline governs the ledger (`respond` pins `target_claim_hash`; a DM key is `@blob-sha`):
+A merged Playbook is revised in place. A forked variant is sprawl and breaks `single-home`. The `pinned` field (§2) scopes each testimonial to a PLAYBOOK version, mirroring the channel's pin-discipline (`respond` pins `target_claim_hash`; a DM key is `@blob-sha`):
 
-1. Each testimonial carries `pinned: <PLAYBOOK.md blob-sha>` — the attested version.
-2. Only the contributing dyad revises the body of that Playbook, FO-gated at the same bar. No testimonial is edited (append-only).
-3. Live count includes current-sha testimonials only. A stale-pinned testimonial stands but reads flagged. A revision PR may declare the change cosmetic to carry pins forward; the Founding Operator disposes that claim. A revision re-earns the count, never inflates the count.
+1. Only the contributing dyad revises the body of that Playbook, FO-gated at the same bar. No testimonial is edited (append-only).
+2. Live count includes current-sha testimonials only. A stale-pinned testimonial stands but reads flagged. A revision PR may declare the change cosmetic to carry pins forward; the Founding Operator disposes that claim. A revision re-earns the count, never inflates the count.
 
 An unpinned testimonial predates this rule and reads as version-unspecified. No unpinned testimonial is retro-edited. The pin binds new testimonials only.
 

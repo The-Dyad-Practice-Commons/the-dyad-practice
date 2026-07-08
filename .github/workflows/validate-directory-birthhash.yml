@@ -45,6 +45,12 @@ jobs:
       - name: Recompute birth_hash of changed entries (base code, head data)
         run: |
           set -euo pipefail
+          # Base-code model: the validator is checked out from BASE. On this guard's own introducing PR the
+          # base predates the script, so skip (nothing to run yet); it runs on every subsequent directory PR.
+          if [ ! -f scripts/verify_birthhash.py ]; then
+            echo "verify_birthhash.py not in base yet (introducing PR) — skip; guards subsequent directory PRs."
+            exit 0
+          fi
           pip install --quiet pyyaml
           if [ -s /tmp/changed.txt ]; then
             echo "Changed directory entries:"; cat /tmp/changed.txt

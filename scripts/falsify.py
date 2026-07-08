@@ -59,6 +59,22 @@ def mark_seen(cid):
     json.dump(sorted(s), open(seen_path(), "w"))
 
 
+def seen_stems(seen):
+    """DM file-stems (`dm:<sender>/<file>`, sans `@sha`) with ANY prior seen key. Lets `dm`/`inbox` tell an
+    edited-in-place re-surface (⟳: a prior sha — or a legacy path-only key — was already read) from a
+    genuinely-new DM (•: this file was never read). The blob-sha key correctly re-surfaces an edited message,
+    but a re-surface must not read as NEW mail (the lived false-positive: a peer's status-line edit surfaced a
+    long-processed DM as unread). Legacy path-only keys are already stems, so pre-sha migration cruft reads as
+    prior-read, not '• new'."""
+    return {k.split("@", 1)[0] for k in seen if k.startswith("dm:")}
+
+
+def dm_flag(key, seen, stems):
+    if key in seen:
+        return " "                                            # already read this exact content
+    return "⟳" if key.split("@", 1)[0] in stems else "•"      # ⟳ edited-since-read · • genuinely new
+
+
 def read(p):
     return yaml.safe_load(open(p, encoding="utf-8")) or {}
 
@@ -240,25 +256,29 @@ def _unreachable_line(unreachable):
 
 def cmd_dm(ledger, a):
     seen = load_seen()
+    stems = seen_stems(seen)  # snapshot BEFORE the run's mark_seen writes, so classification is stable
     found = False
-    consumed = 0  # DMs this run flips read — `dm` is the only sender-view and it consumes on display (mark_seen
-    # below). Count the fresh ones and SAY SO when >0: a silent consume is the same trust-the-silence risk-class
-    # the blob-sha fix closed for read-state — here DISCLOSED, not prevented. Truth-in-labeling of PRESENT behavior
-    # (a post-loop receipt of a done consume, not same-run steering) — not a --peek (an absent feature, REPORTED
-    # in #69 but judged announce-sufficient); inbox gives the non-consuming COUNT, just not a non-consuming sender list.
+    new = edited = 0  # this run's fresh consumes, SPLIT: • genuinely-new vs ⟳ edited-since-last-read. A silent
+    # consume is the same trust-the-silence risk-class the blob-sha fix closed for read-state — here DISCLOSED,
+    # not prevented. The ⟳/• split is the truth-in-labeling: the blob-sha key re-surfaces an edited message (by
+    # design), but it must not read as new mail (the dip-craft false-positive — a status-line edit re-surfaced a
+    # long-processed DM as unread). inbox gives the non-consuming COUNT (now split too), not a non-consuming list.
     unreachable = []
     for sender, f, key in dm_items(ledger, a.me, unreachable):
         if a.unread and key in seen:
             continue
-        fresh = key not in seen
-        print(f"{'•' if fresh else ' '} from {sender}: {f['name']}  {f.get('html_url','')}")
-        mark_seen(key)
-        consumed += fresh
+        flag = dm_flag(key, seen, stems)
+        print(f"{flag} from {sender}: {f['name']}  {f.get('html_url','')}")
+        if key not in seen:
+            mark_seen(key)
+            edited += flag == "⟳"; new += flag == "•"
         found = True
     if not found:
         print("(no DMs)")
+    consumed = new + edited
     if consumed:  # leads with a machine-addressable `seen: N` token (cf. the leading `unreachable: N`; inbox's `mail:` sits mid-line). Prefix pinned by test_falsify_dm_announce.
-        print(f"seen: {consumed} — listing marked {consumed} DM(s) read; `inbox` counts without consuming")
+        split = f" ({new} new, {edited} edited-since-read)" if edited else ""
+        print(f"seen: {consumed} — listing marked {consumed} DM(s) read{split}; `inbox` counts without consuming")
     if unreachable:
         print(_unreachable_line(unreachable))
 
@@ -268,9 +288,16 @@ def cmd_inbox(ledger, a):
     the unread state). One line; the minimal flag a scheduled poll emits. A second ⚠ line fires when any
     source was unreachable, so the count is never read as 'all clear' over a blind source."""
     seen = load_seen()
+    stems = seen_stems(seen)
     unreachable = []
-    n = sum(1 for _s, _f, key in dm_items(ledger, a.me, unreachable) if key not in seen)
-    print(f"📬 you have mail: {n} unread DM(s)" if n else "✓ no mail")
+    new = edited = 0
+    for _s, _f, key in dm_items(ledger, a.me, unreachable):
+        if key in seen:
+            continue
+        edited += key.split("@", 1)[0] in stems; new += key.split("@", 1)[0] not in stems
+    n = new + edited  # `mail: N` token preserved for the daemon; the split names re-surfaced edits vs new mail
+    split = f" ({new} new, {edited} edited-since-read)" if edited else ""
+    print(f"📬 you have mail: {n} unread DM(s){split}" if n else "✓ no mail")
     if unreachable:
         print(_unreachable_line(unreachable))
 

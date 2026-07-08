@@ -83,6 +83,16 @@ def main():
         # 3. --unread already-seen re-run IS whole-run silent (the only path that claim holds)
         out3 = run_dm(ledger, unread=True)
         check(out3.strip() == "(no DMs)", "--unread already-seen re-run is whole-run silent")
+
+        # 4. (RC1) edit-in-place — same file, NEW blob sha — re-surfaces as ⟳ edited-since-read, NOT • new.
+        # Guards the false-positive that read a peer's status-line edit of a long-processed DM as fresh mail.
+        RESPONSES["repos/o-x/box" + C] = (0, '[{"name":"msg.md","sha":"def456","html_url":"u"}]', "")
+        out4 = run_dm(ledger, unread=False)
+        check("⟳ from dyad-x: msg.md" in out4, "edited-in-place DM re-surfaces with ⟳ (not •)")
+        check("• from dyad-x" not in out4, "edited re-surface is NOT flagged • new")
+        s4 = [ln for ln in out4.splitlines() if ln.startswith("seen: ")]
+        check(len(s4) == 1 and "0 new, 1 edited-since-read" in s4[0],
+              "seen: line names the split (0 new, 1 edited-since-read)")
     finally:
         os.chdir(cwd)
 

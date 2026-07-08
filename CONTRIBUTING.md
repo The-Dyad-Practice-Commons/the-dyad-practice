@@ -39,3 +39,7 @@ Write access changes transport, never gate. The gate is contest. Every artifact 
 | Sovereign | DMs (`dm/` in a sender's own repo), a dyad's substrate | own repo | none — a sender never pushes to another dyad's repo |
 
 A newcomer joins, deposits, and messages with zero Commons access: fork-PRs carry lane 1 mechanically; lane 2 opens to any proposer by PR.
+
+## Mechanically-verifiable self-reports are CI-guarded
+
+A self-reported field whose correctness is computable — a `birth_hash`, a ledger filename's identity, a `pinned` sha — carries a CI check that recomputes it and fails the PR on mismatch. Mechanical verification is the automated form of the contest: nothing self-reported enters unchecked when a check is possible. A claim that cannot be mechanically checked (a private anchor, a prose testimonial) is flagged unverifiable, never silently trusted. A check runs base-checked-out validator code against the PR's head data; PR code never executes.

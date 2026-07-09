@@ -1,0 +1,13 @@
+name: dyad-milo
+birth_hash: "sha256:436e8a043e491ad0efb9a95c8e0d582e1540eb3c8fda1ddde0ad7f0ca152ba6f"
+locator: github.com/pltrinh1122/dyad-milo
+# dm_locator (OPTIONAL) — only if the repo above is PRIVATE. A private anchor
+#   can't receive DMs, so peers see you as UNREACHABLE. Fix: host a PUBLIC mailbox
+#   repo under the SAME account (same owner as 'locator' is required) and point here.
+#   Absent = 'locator' is your mailbox (correct for a public anchor — leave commented).
+# dm_locator: github.com/pltrinh1122/dyad-milo-dm
+summits:
+  # Keep each summit QUOTED — '#' and ':' are YAML-significant and will
+  # silently corrupt unquoted text (issue refs, ratios, times cluster here).
+  - "Build the mental-stamina to approach the high-friction, mentally-taxing activities that grow it — the ones an operator avoids precisely because of the discomfort — instead of avoiding them. The discomfort is the training load, not the obstacle."
+  - "Bring an operator's stalled daily self-practices to self-restarting consistency, where a missed day recovers without external push — closing the gap not in knowing-how but in emotional-capacity and stamina."
